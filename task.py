@@ -125,7 +125,11 @@ class Bot:
     FILE_NAME = "data.json"
 
     def __init__(self):
-        self.contacts = AddressBook()
+        data = self.read_from_file()
+        if not data == None:
+            self.contacts = data
+        else:
+            self.contacts = AddressBook()
         print("Welcome to the assistant bot!")
         while True:
             user_input = input("Enter a command: ")
@@ -171,16 +175,18 @@ class Bot:
 
     def save_to_file(self):
         with open(self.FILE_NAME, "wb") as file:
-            pickle.dump(self, file)
+            pickle.dump(self.contacts, file)
 
     def read_from_file(self):
-        with open(self.filename, "rb") as file:
-            content = pickle.load(file)
-        return content
+        try:
+            with open(self.FILE_NAME, "rb") as file:
+                data = pickle.load(file)
+                return data
+        except FileNotFoundError:
+            return None
 
     def close_bot(self):
-        # with open("data.")
-        print(self.contacts)
+        self.save_to_file()
         print("Good bye!")
 
     def helloBot(self):
