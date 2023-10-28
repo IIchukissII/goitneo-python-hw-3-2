@@ -1,5 +1,6 @@
 from collections import UserDict
 from datetime import datetime
+import pickle
 
 
 class Field:
@@ -33,9 +34,9 @@ class Birthday(Field):
     DATE_FORMAT = "%d.%m.%Y"
 
     def __init__(self, value):
-        print(f"Log3: {value}")
         date_obj = datetime.strptime(value, self.DATE_FORMAT)
-        super().__init__(date_obj)
+        # super().__init__(date_obj)
+        super().__init__(date_obj.date())
 
     def __lt__(self, other):
         if isinstance(other, Birthday):
@@ -49,35 +50,20 @@ class Birthday(Field):
 class Record:
     def __init__(self, name):
         self.name = Name(name)
-        self.phones = []
-        self.birthday = ["None"]
+        self.phone = ""
+        self.birthday = "None"
 
     def add_phone(self, value):
-        self.phones.append(Phone(value))
+        self.phone = Phone(value)
 
-    def add_birthday(self, value):
-        self.birthday = [Birthday(value)]
-
-    def find_phone(self, phone):
-        try:
-            res = list(filter(lambda x: x == phone, self.phones))[0]
-            return res
-        except:
-            raise ValueError("Phone not found")
-
-    def edit_phone(self, old_phone, new_phone):
-        for idx, phone in enumerate(self.phones):
-            if phone == old_phone:
-                self.phones[idx] = Phone(new_phone)
-                print(f"Phone number updated to {new_phone}")
+    def edit_phone(self, new_phone):
+        self.phone = new_phone
+        return f"Phone number updated to {new_phone}"
 
     def __str__(self):
-        return f"Contact name: {self.name}, phones: {'; '.join(p.value for p in self.phones)}, birthday: {self.birthday[0]}"
-
-    # def __getitem__(self, key):
-    #     if key == "birthday":
-    #         print(f"Log4 ")
-    #         return self.birthday
+        return (
+            f"Contact name: {self.name}, phone: {self.phone}, birthday: {self.birthday}"
+        )
 
 
 class AddressBook(UserDict):
@@ -88,51 +74,56 @@ class AddressBook(UserDict):
         self.data[record.name] = record
 
     def find(self, name):
-        return self.data.get(name)
+        res = self.data.get(name)
+        if res:
+            return res
+        else:
+            print("Contact not found")
 
-    def delete(self, name):
-        for i in self.data:
-            if i == name:
-                del i
-                print(f"Contact {name} has been deleted.")
+    def add_birthday(self, name, birthday):
+        contact = self.find(name)
+        contact.birthday = Birthday(birthday)
 
     def show_birthday(self, name):
         for i in self.data:
             if i == name:
-                return self.data[i].birthday[0]
+                return self.data[i].birthday
             else:
-                print("Contact not found")
+                return "Contact not found"
 
     def birthdays(self):
         birthday_dict = {}
         for user in sorted(self.data.values(), key=lambda x: x.birthday):
             current_date = datetime.now().date()
             next_year = current_date.year + 1
-            birthday = user.birthday[0]
+            birthday = user.birthday
             if birthday == "None":
                 continue
-            birthday = birthday.value.date()
+            birthday = birthday.value
             birthday_this_year = birthday.replace(year=current_date.year)
             if birthday_this_year < current_date:
                 birthday_this_year = birthday.replace(year=next_year)
 
             delta_days = (birthday_this_year - current_date).days
 
-            if delta_days < 5:
+            if delta_days <= 5:
                 weekday = birthday_this_year.strftime("%A")
                 if weekday in ("Saturday", "Sunday"):
                     weekday = "Monday"
                 if weekday in birthday_dict:
-                    birthday_dict[weekday] += [user["name"]]
+                    birthday_dict[weekday] += [user.name]
                 else:
-                    birthday_dict[weekday] = [user["name"]]
-        res = "\n".join(
-            f"{day}: {', '.join(names)}" for day, names in birthday_dict.items()
-        )
+                    birthday_dict[weekday] = [user.name]
+
+        res = "\nAll Birthdays:\n"
+        for day, names in birthday_dict.items():
+            res += f"{day}: {', '.join(map(str, names))}\n"
         return res
 
 
 class Bot:
+    FILE_NAME = "data.json"
+
     def __init__(self):
         self.contacts = AddressBook()
         print("Welcome to the assistant bot!")
@@ -149,10 +140,16 @@ class Bot:
                 self.add_contact(args)
             elif command == "change":
                 self.change_contact(args)
-            # elif command == "phone":
-            #     print(phone_contact(args[0], contacts))
-            # elif command == "all":
-            #     print(all_contact(contacts))
+            elif command == "phone":
+                self.phone_contact(args)
+            elif command == "all":
+                self.all_contact()
+            elif command == "add-birthday":
+                self.add_birthday(args)
+            elif command == "show-birthday":
+                self.show_birthday(args)
+            elif command == "birthdays":
+                self.birthdays()
             else:
                 print("Invalid command.")
 
@@ -172,7 +169,18 @@ class Bot:
 
         return inner
 
+    def save_to_file(self):
+        with open(self.FILE_NAME, "wb") as file:
+            pickle.dump(self, file)
+
+    def read_from_file(self):
+        with open(self.filename, "rb") as file:
+            content = pickle.load(file)
+        return content
+
     def close_bot(self):
+        # with open("data.")
+        print(self.contacts)
         print("Good bye!")
 
     def helloBot(self):
@@ -181,56 +189,48 @@ class Bot:
     @_input_error
     def add_contact(self, args):
         name, phone = args
-        john_record = Record(name)
-        john_record.add_phone(phone)
-        self.contacts.add_record(john_record)
+        record = Record(name)
+        record.add_phone(phone)
+        self.contacts.add_record(record)
         print("Contact added.")
 
     @_input_error
     def change_contact(self, args):
         name, phone = args
         contact = self.contacts.find(name)
-        # contact.edit_phone("1234567890", "1112223333")
+        res = contact.edit_phone(phone)
+        print(res)
+
+    @_input_error
+    def phone_contact(self, args):
+        name = args[0]
+        contact = self.contacts.find(name)
+        phone = contact.phone
+        print(phone)
+
+    def all_contact(self):
+        res = "\nAll Contacts:\n"
+        for key, value in self.contacts.items():
+            res += f"{key}: {value}\n"
+        print(res)
+
+    @_input_error
+    def add_birthday(self, args):
+        name, birthday = args
+        self.contacts.add_birthday(name, birthday)
+        print("Birthday added.")
+
+    @_input_error
+    def show_birthday(self, args):
+        name = args[0]
+        contact = self.contacts.find(name)
+        birthday = contact.birthday
+        print(birthday)
+
+    def birthdays(self):
+        birthdays = self.contacts.birthdays()
+        print(birthdays)
 
 
 if __name__ == "__main__":
-    # Створення нової адресної книги
-    book = AddressBook()
-
-    # Створення запису для John
-    john_record = Record("John")
-    john_record.add_phone("1234567890")
-    john_record.add_phone("5555555555")
-    john_record.add_birthday("12.04.2002")
-    book.add_record(john_record)
-
-    # Створення та додавання нового запису для Jane
-    jane_record = Record("Jane")
-    jane_record.add_phone("9876543210")
-    book.add_record(jane_record)
-
-    # Виведення всіх записів у книзі
-    for name, record in book.data.items():
-        print(record)
-
-    # Знаходження та редагування телефону для John
-    john = book.find("John")
-    john.edit_phone("1234567890", "1112223333")
-
-    print(john)  # Виведення: Contact name: John, phones: 1112223333; 5555555555
-
-    # Пошук конкретного телефону у записі John
-    found_phone = john.find_phone("5555555555")
-    print(f"{john.name}: {found_phone}")  # Виведення: 5555555555
-
-    print(book.show_birthday("Jane"))
-
-    # Видалення запису Jane
-    book.delete("Jane")
-
-    # День народженя запису Jone
-    print(book.show_birthday("John"))
-
-    # Список день народжень для привітання
-    print(book.birthdays())
     Bot()
