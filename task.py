@@ -77,18 +77,23 @@ class AddressBook(UserDict):
         if res:
             return res
         else:
-            print("Contact not found")
+            raise ValueError("Contact not found")
 
     def add_birthday(self, name, birthday):
-        contact = self.find(name)
-        contact.birthday = Birthday(birthday)
+        try:
+            contact = self.find(name)
+        except ValueError:
+            print("Contact not found")
+        else:
+            contact.birthday = Birthday(birthday)
+            print("Birthday added.")
 
     def show_birthday(self, name):
         for i in self.data:
             if i == name:
                 return self.data[i].birthday
             else:
-                return "Contact not found"
+                raise ValueError("Contact not found")
 
     def birthdays(self):
         birthday_dict = {}
