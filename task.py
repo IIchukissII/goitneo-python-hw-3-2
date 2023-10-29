@@ -1,5 +1,6 @@
 from collections import UserDict
 from datetime import datetime
+import pickle
 
 
 class Field:
@@ -34,7 +35,6 @@ class Birthday(Field):
 
     def __init__(self, value):
         date_obj = datetime.strptime(value, self.DATE_FORMAT)
-        # super().__init__(date_obj)
         super().__init__(date_obj.date())
 
     def __lt__(self, other):
@@ -68,6 +68,17 @@ class Record:
 class AddressBook(UserDict):
     def __init__(self):
         self.data = {}
+
+    def save_to_file(self, filename):
+        with open(filename, "wb") as file:
+            pickle.dump(self.data, file)
+
+    def read_from_file(self, filename):
+        try:
+            with open(filename, "rb") as file:
+                self.data = pickle.load(file)
+        except FileNotFoundError:
+            self.data = {}
 
     def add_record(self, record):
         self.data[record.name] = record

@@ -1,7 +1,6 @@
-import pickle
 from task import AddressBook, Record
 
-contacts = {}
+contacts = AddressBook()
 
 
 def _parse_input(user_input):
@@ -22,22 +21,8 @@ def _input_error(func):
     return inner
 
 
-def save_to_file(filename):
-    with open(filename, "wb") as file:
-        pickle.dump(contacts, file)
-
-
-def read_from_file(filename):
-    try:
-        with open(filename, "rb") as file:
-            data = pickle.load(file)
-            return data
-    except FileNotFoundError:
-        return None
-
-
 def close_bot(filename):
-    save_to_file(filename)
+    contacts.save_to_file(filename)
     print("Good bye!")
 
 
@@ -97,12 +82,7 @@ def birthdays():
 
 
 def main(filename):
-    global contacts
-    data = read_from_file(filename)
-    if not data == None:
-        contacts = data
-    else:
-        contacts = AddressBook()
+    contacts.read_from_file(filename)
 
     print("Welcome to the assistant bot!")
     while True:
