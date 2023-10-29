@@ -3,14 +3,15 @@ from task import AddressBook, Record
 
 
 class Bot:
-    FILE_NAME = "data.json"
-
-    def __init__(self):
+    def __init__(self, filename):
+        self.filename = filename
         data = self.read_from_file()
         if not data == None:
             self.contacts = data
         else:
             self.contacts = AddressBook()
+
+    def run(self):
         print("Welcome to the assistant bot!")
         while True:
             user_input = input("Enter a command: ")
@@ -55,12 +56,12 @@ class Bot:
         return inner
 
     def save_to_file(self):
-        with open(self.FILE_NAME, "wb") as file:
+        with open(self.filename, "wb") as file:
             pickle.dump(self.contacts, file)
 
     def read_from_file(self):
         try:
-            with open(self.FILE_NAME, "rb") as file:
+            with open(self.filename, "rb") as file:
                 data = pickle.load(file)
                 return data
         except FileNotFoundError:
@@ -120,4 +121,5 @@ class Bot:
 
 
 if __name__ == "__main__":
-    Bot()
+    bot = Bot("data.json")
+    bot.run()
